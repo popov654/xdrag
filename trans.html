@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Transition</title>
+<style type="text/css">
+#ex1 {
+    position: absolute;
+    top: 20%;
+    left: 30%;
+    width: 60px;
+    height: 60px;
+    border: 2px solid #00c;
+    text-align: center;
+    vertical-align: middle;
+    font-family: Verdana;
+    font-size: 36px;
+    padding-top: 12px;
+}
+</style>
+<script type="text/javascript">
+
+
+   function Transition(obj, props, duration, type) {
+      this.object = obj
+      this.props = props
+      this.duration = duration
+      this.delta = this.resolution / this.duration
+      this.progress = 0.0
+      this.type = type ? type : 'sin2'
+      this.timer = null
+   }
+
+   Transition.prototype.duration = 500
+   Transition.prototype.resolution = 10
+   Transition.prototype.props = []
+   Transition.prototype.setResolution = function(res) {
+      this.resolution = res
+   }
+   Transition.prototype.process = function() {
+      this.progress += this.delta
+      var p = this.progress
+      switch(this.type) {
+         case 'std':
+            break;
+         case 'sin':
+            p = Math.sin(p * Math.PI / 2)
+            break;
+         case 'sin2':
+            p = (Math.sin(-Math.PI / 2 + p * Math.PI) + 1) / 2
+            break;
+         case 'sqrt':
+            p = Math.sqrt(p)
+            break;
+         case 'sqr':
+            p *= p
+            break;
+      }
+      for (var i = 0; i < this.props.length; i++) {
+         var s = parseFloat(this.props[i].startValue)
+         var e = parseFloat(this.props[i].endValue)
+         var val = s + (e-s) * p
+         if (this.props[i].name.toLowerCase() != 'opacity') {
+            if (this.props[i].startValue.match(/%$/)) {
+               this.object.style[this.props[i].name] = Number(val).toPrecision(4) + '%'
+            }
+            if (this.props[i].startValue.match(/px$/)) {
+               this.object.style[this.props[i].name] = parseInt(val) + 'px'
+            }
+         } else {
+            setElementOpacity(this.object, Number(val).toPrecision(3))
+         }
+         this.props[i].curValue = this.object.style[this.props[i].name]
+      }
+   }
+   Transition.prototype.run = function() {
+      this.progress = 0.0
+      this.timer = setInterval((function() {
+         this.process()
+         if (this.progress >= 1.0) {
+            clearInterval(this.timer)
+            this.timer = null
+         }
+      }).bind(this), this.resolution)
+   }
+   Transition.prototype.abort = function() {
+      this.stop()
+      this.duration *= this.progress
+      this.delta = this.resolution / this.duration
+      for (var i = 0; i < this.props.length; i++) {
+         this.props[i].endValue = this.props[i].startValue
+         this.props[i].startValue = this.props[i].curValue
+      }
+      this.run()
+   }
+   Transition.prototype.stop = function() {
+      clearInterval(this.timer)
+      this.timer = null
+   }
+
+   function setElementOpacity(elem, nOpacity) {
+      var opacityProp = getOpacityProperty();
+
+      if (!elem || !opacityProp) return;
+
+      if (opacityProp=="filter") {
+         nOpacity *= 100;
+
+         // If opacity has already been set, change it via filters collection, otherwise add it via style.filter
+         var oAlpha = elem.filters['DXImageTransform.Microsoft.alpha'] || elem.filters.alpha;
+         if (oAlpha) oAlpha.opacity = nOpacity;
+         else elem.style.filter += "progid:DXImageTransform.Microsoft.Alpha(opacity="+nOpacity+")"; //Для того чтобы не затереть другие фильтры используем "+="
+      }
+      else // Other browsers
+         elem.style[opacityProp] = nOpacity;
+   }
+
+   function getOpacityProperty() {
+      if (typeof document.body.style.opacity == 'string') // CSS3 compliant (Moz 1.7+, Safari 1.2+, Opera 9)
+         return 'opacity';
+      else if (typeof document.body.style.MozOpacity == 'string') // Mozilla 1.6 and older, Firefox 0.8
+         return 'MozOpacity';
+      else if (typeof document.body.style.KhtmlOpacity == 'string') // Konqueror 3.1, Safari 1.1
+         return 'KhtmlOpacity';
+      else if (document.body.filters && navigator.appVersion.match(/MSIE ([\d.]+);/)[1]>=5.5) // Internet Exploder 5.5+
+         return 'filter';
+
+      return false; //no opacity
+   }
+   
+   function init() {
+      var el = document.getElementById('ex1')
+      var fx = new Transition(el, [{ name: 'left',
+                                     startValue: '30%',
+                                     endValue: '60%',
+                                     curValue: '30%' },
+                                   { name: 'top',
+                                     startValue: '20%',
+                                     endValue: '60%',
+                                     curValue: '20%' }], 300)
+      fx.run()
+   }
+
+
+</script>
+</head>
+<body onload="init()">
+<div id="ex1">T</div>
+
+</body>
+</html>

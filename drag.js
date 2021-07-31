@@ -16,10 +16,11 @@ function initDragList(el) {
 		target.style.cursor = 'move'
 		target.style.mozUserSelect = 'none'
 		target.style.webkitUserSelect = 'none'
+		target.style.zIndex = '10'
 		fireEvent(target, 'mousemove')
 		var self = target;
 		[].slice.call(target.parentNode.children).forEach(function(el) {
-		if (!el.coords) el.coords = [el.getBoundingClientRect().left - el.parentNode.getBoundingClientRect().left, el.getBoundingClientRect().top - el.parentNode.getBoundingClientRect().top]
+			if (!el.coords) el.coords = [el.getBoundingClientRect().left - el.parentNode.getBoundingClientRect().left, el.getBoundingClientRect().top - el.parentNode.getBoundingClientRect().top]
 			el.style.mozUserSelect = 'none'
 			el.style.webkitUserSelect = 'none'
 			if (el != self) el.style.transition = 'all 0.2s ease'
@@ -42,6 +43,7 @@ function initDragList(el) {
 		window.drag.el.style.cursor = ''
 		window.drag.el.style.mozUserSelect = ''
 		window.drag.el.style.webkitUserSelect = ''
+		window.drag.el.style.zIndex = ''
 		//window.drag.el.style.left = ''
 		//window.drag.el.style.top = ''
 		Array.prototype.slice.call(window.drag.el.parentNode.children).forEach(function(el) {
@@ -75,7 +77,10 @@ function updateSiblings() {
 			var dx0 = el0.coords[0]
 			if (dx0 >= dx) break
 			if (dx0 < dx && dx <= dx0 + el0.clientWidth / 2) {
-				el0.style.left = el.clientWidth + 'px'
+				var st0 = el0.currentStyle || getComputedStyle(el0, '')
+				var st = el.currentStyle || getComputedStyle(el, '')
+				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft) - parseInt(st0.marginLeft)
+				el0.style.left = el0.clientWidth + (!isNaN(gap) ? gap : 0) + 'px'
 				break
 			} else {
 				el0.style.left = '0px'
@@ -90,7 +95,10 @@ function updateSiblings() {
 			var dx0 = el0.coords[0]
 			if (dx0 <= dx) break
 			if (dx0 > dx && (dx + w) >= dx0 + el0.clientWidth / 2) {
-				el0.style.left = -el.clientWidth + 'px'
+				var st0 = el0.currentStyle || getComputedStyle(el0, '')
+				var st = el.currentStyle || getComputedStyle(el, '')
+				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft)
+				el0.style.left = -el0.clientWidth + (!isNaN(gap) ? -gap : 0) + 'px'
 				break
 			} else {
 				el0.style.left = '0px'
@@ -105,7 +113,10 @@ function updateSiblings() {
 			var dy0 = el0.coords[1]
 			if (dy0 >= dy) break
 			if (dy0 < dy && dy <= dy0 + el0.clientHeight / 2) {
-				el0.style.top = el.clientHeight + 'px'
+				var st0 = el0.currentStyle || getComputedStyle(el0, '')
+				var st = el.currentStyle || getComputedStyle(el, '')
+				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
+				el0.style.top = el0.clientHeight + (!isNaN(gap) ? gap : 0) + 'px'
 				break
 			} else {
 				el0.style.top = '0px'
@@ -120,7 +131,10 @@ function updateSiblings() {
 			var dy0 = el0.coords[1]
 			if (dy0 <= dy) break
 			if (dy0 > dy && (dy + h) >= dy0 + el0.clientHeight / 2) {
-				el0.style.top = -el.clientHeight + 'px'
+				var st0 = el0.currentStyle || getComputedStyle(el0, '')
+				var st = el.currentStyle || getComputedStyle(el, '')
+				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
+				el0.style.top = -el0.clientHeight + (!isNaN(gap) ? -gap : 0) + 'px'
 				break
 			} else {
 				el0.style.top = '0px'

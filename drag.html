@@ -184,79 +184,79 @@
                   this.offsetX = e.screenX - t.getBoundingClientRect().left
                   this.offsetY = e.screenY - t.getBoundingClientRect().top
                }).bind(this, i)
-               children[i].onmousemove = (function(event) {
-                  if (!this.currentElement) return
-                  var e = event || window.event
-                  this.dragged = true
-                  var x = e.screenX - this.offsetX - this.left
-                  var y = e.screenY - this.offsetY  - this.top
-                  this.currentElement.style.left = x + 'px'
-                  this.currentElement.style.top = y + 'px'
-                  
-                  if (this.type == 'x') {
-                     var index = this.currentIndex
-                     var old_x = this.padding * (index + 1) + this.size * index
-                     if ((index > 0) && (x < old_x - this.padding - this.size / 2)) {
-
-                        var prev = this.getChild(this.indices[index - 1])
-                        prev.style.zIndex = 98
-                        var x = old_x - this.padding - this.size
-                        var fx = new Transition(prev, [{ name: 'left',
-                                     startValue: x + 'px',
-                                     endValue: old_x + 'px' }], 400, null,
-                                     (function() { this.style.zIndex = '' }).bind(prev))
-                        fx.run()
-                        var i = this.indices[this.currentIndex]
-                        this.indices[this.currentIndex] = this.indices[this.currentIndex-1]
-                        this.indices[this.currentIndex-1] = i
-                        this.currentIndex--
-                     }
-                     if ((index < this.indices.length-1) && (x + this.size > old_x + this.padding + this.size * 1.5)) {
-
-                        var next = this.getChild(this.indices[index + 1])
-                        next.style.zIndex = 98
-                        var x = old_x + this.padding + this.size
-                        var fx = new Transition(next, [{ name: 'left',
-                                     startValue: x + 'px',
-                                     endValue: old_x + 'px' }], 400, null,
-                                     (function() { this.style.zIndex = '' }).bind(prev))
-                        fx.run()
-                        var i = this.indices[this.currentIndex]
-                        this.indices[this.currentIndex] = this.indices[this.currentIndex+1]
-                        this.indices[this.currentIndex+1] = i
-                        this.currentIndex++
-                     }
-                  }
-                  
-               }).bind(this)
-               children[i].onmouseup = (function(event) {
-                  if (this.dragged && this.currentElement) {
-                     var e = event || window.event
-                     var t = this.currentElement
-
-                     var index = this.currentIndex
-                     var cur_x = e.screenX - this.offsetX - this.left
-                     var cur_y = e.screenY - this.offsetY  - this.top
-                     this.currentElement.style.top = e.screenY - this.offsetY  - this.top + 'px'
-                     var x = this.padding * (index + 1) + this.size * index
-                     var y = this.padding
-                     var fx = new Transition(t, [{ name: 'left',
-                                     startValue: cur_x + 'px',
-                                     endValue: x + 'px' },
-                                   { name: 'top',
-                                     startValue: cur_y + 'px',
-                                     endValue: y + 'px' }], 400, null,
-                                     (function() { this.style.zIndex = '' }).bind(t))
-                     fx.run()
-
-                     //this.currentElement.style.left = x + 'px'
-                     //this.currentElement.style.top = y + 'px'
-                  }
-                  this.currentElement = null
-                  this.currentIndex = -1
-                  this.dragged = false
-               }).bind(this)
             }
+            document.onmousemove = (function(event) {
+               if (!this.currentElement) return
+               var e = event || window.event
+               this.dragged = true
+               var x = e.screenX - this.offsetX - this.left
+               var y = e.screenY - this.offsetY  - this.top
+               this.currentElement.style.left = x + 'px'
+               this.currentElement.style.top = y + 'px'
+               
+               if (this.type == 'x') {
+                  var index = this.currentIndex
+                  var old_x = this.padding * (index + 1) + this.size * index
+                  if ((index > 0) && (x < old_x - this.padding - this.size / 2)) {
+
+                     var prev = this.getChild(this.indices[index - 1])
+                     prev.style.zIndex = 98
+                     var x = old_x - this.padding - this.size
+                     var fx = new Transition(prev, [{ name: 'left',
+                                  startValue: x + 'px',
+                                  endValue: old_x + 'px' }], 400, null,
+                                  (function() { this.style.zIndex = '' }).bind(prev))
+                     fx.run()
+                     var i = this.indices[this.currentIndex]
+                     this.indices[this.currentIndex] = this.indices[this.currentIndex-1]
+                     this.indices[this.currentIndex-1] = i
+                     this.currentIndex--
+                  }
+                  if ((index < this.indices.length-1) && (x + this.size > old_x + this.padding + this.size * 1.5)) {
+
+                     var next = this.getChild(this.indices[index + 1])
+                     next.style.zIndex = 98
+                     var x = old_x + this.padding + this.size
+                     var fx = new Transition(next, [{ name: 'left',
+                                  startValue: x + 'px',
+                                  endValue: old_x + 'px' }], 400, null,
+                                  (function() { this.style.zIndex = '' }).bind(next))
+                     fx.run()
+                     var i = this.indices[this.currentIndex]
+                     this.indices[this.currentIndex] = this.indices[this.currentIndex+1]
+                     this.indices[this.currentIndex+1] = i
+                     this.currentIndex++
+                  }
+               }
+            }).bind(this)
+            
+            document.onmouseup = (function(event) {
+               if (this.dragged && this.currentElement) {
+                  var e = event || window.event
+                  var t = this.currentElement
+
+                  var index = this.currentIndex
+                  var cur_x = e.screenX - this.offsetX - this.left
+                  var cur_y = e.screenY - this.offsetY  - this.top
+                  this.currentElement.style.top = e.screenY - this.offsetY  - this.top + 'px'
+                  var x = this.padding * (index + 1) + this.size * index
+                  var y = this.padding
+                  var fx = new Transition(t, [{ name: 'left',
+                                  startValue: cur_x + 'px',
+                                  endValue: x + 'px' },
+                                { name: 'top',
+                                  startValue: cur_y + 'px',
+                                  endValue: y + 'px' }], 400, null,
+                                  (function() { this.style.zIndex = '' }).bind(t))
+                  fx.run()
+
+                  //this.currentElement.style.left = x + 'px'
+                  //this.currentElement.style.top = y + 'px'
+               }
+               this.currentElement = null
+               this.currentIndex = -1
+               this.dragged = false
+            }).bind(this)
          }
       }
    }

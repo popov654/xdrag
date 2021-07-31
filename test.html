@@ -26,6 +26,18 @@ body {
    background: #fff;
 }
 </style>
+<script type="text/javascript">
+   
+   function init() {
+      document.getElementById('list').addEventListener('reorder', function(e) {
+         console.log(e)
+      })
+      document.getElementById('list').addEventListener('reordercomplete', function(e) {
+         console.log(e)
+      })
+   }
+
+</script>
 </head>
 <body onload="init()">
 <div id="list" class="reorder"><div>A</div><div>B</div><div>C</div><div>D</div></div>

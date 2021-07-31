@@ -11,7 +11,15 @@ function initDragList(el) {
 			if (['select', 'input', 'textarea', 'label'].indexOf(target.tagName.toLowerCase()) != -1) return false
 			target = target.parentNode
 		}
-		window.drag = { el: target, coords: [event.clientX, event.clientY] }
+		var list = target.parentNode
+		var index = -1
+		for (var i = 0; i < list.children.length; i++) {
+			if (list.children[i] == event.target) {
+				index = i
+				break
+			}
+		}
+		window.drag = { el: target, coords: [event.clientX, event.clientY], index: index }
 		target.style.position = 'relative'
 		target.style.cursor = 'move'
 		target.style.mozUserSelect = 'none'
@@ -73,6 +81,7 @@ function updateSiblings() {
 	if (x < 0) {
 		var el0 = list.firstElementChild
 		var w = el.clientWidth
+		var pos = 0
 		while (el0 && el0 != el) {
 			var dx0 = el0.coords[0]
 			if (dx0 >= dx) break
@@ -80,17 +89,20 @@ function updateSiblings() {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft) - parseInt(st0.marginLeft)
+				if (el0.style.left == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.left = el0.clientWidth + (!isNaN(gap) ? gap : 0) + 'px'
 				break
 			} else {
 				el0.style.left = '0px'
 			}
 			el0 = el0.nextElementSibling
+			pos++
 		}
 	}
 	if (x > 0) {
 		var el0 = list.lastElementChild
 		var w = el.clientWidth
+		var pos = list.children.length-1
 		while (el0 && el0 != el) {
 			var dx0 = el0.coords[0]
 			if (dx0 <= dx) break
@@ -98,17 +110,20 @@ function updateSiblings() {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft)
+				if (el0.style.left == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.left = -el0.clientWidth + (!isNaN(gap) ? -gap : 0) + 'px'
 				break
 			} else {
 				el0.style.left = '0px'
 			}
 			el0 = el0.previousElementSibling
+			pos--
 		}
 	}
 	if (y < 0) {
 		var el0 = list.firstElementChild
 		var h = el.clientHeight
+		var pos = 0
 		while (el0 && el0 != el) {
 			var dy0 = el0.coords[1]
 			if (dy0 >= dy) break
@@ -116,17 +131,20 @@ function updateSiblings() {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
+				if (el0.style.top == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.top = el0.clientHeight + (!isNaN(gap) ? gap : 0) + 'px'
 				break
 			} else {
 				el0.style.top = '0px'
 			}
 			el0 = el0.nextElementSibling
+			pos++
 		}
 	}
 	if (y > 0) {
 		var el0 = list.lastElementChild
 		var h = el.clientHeight
+		var pos = list.children.length-1
 		while (el0 && el0 != el) {
 			var dy0 = el0.coords[1]
 			if (dy0 <= dy) break
@@ -134,12 +152,14 @@ function updateSiblings() {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
+				if (el0.style.top == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.top = -el0.clientHeight + (!isNaN(gap) ? -gap : 0) + 'px'
 				break
 			} else {
 				el0.style.top = '0px'
 			}
 			el0 = el0.previousElementSibling
+			pos--
 		}
 	}
 }
@@ -155,6 +175,7 @@ function updatePosition() {
 
 	if (x < 0) {
 		var el0 = list.firstElementChild
+		var pos = 0
 		if (el0 && el0 != el && el0.coords[0] != el.coords[0]) {
 			var w = el.clientWidth
 			while (el0 && el0 != el) {
@@ -162,14 +183,17 @@ function updatePosition() {
 				if (dx <= dx0 + el0.clientWidth / 2) {
 					list.insertBefore(el, el0)
 					el.style.left = (dx - dx0) + 'px'
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
 					break
 				}
 				el0 = el0.nextElementSibling
+				pos++
 			}
 		}
 	}
 	if (x > 0) {
 		var el0 = list.lastElementChild
+		var pos = list.children.length-1
 		if (el0 && el0 != el && el0.coords[0] != el.coords[0]) {
 			var w = el.clientWidth
 			while (el0 && el0 != el) {
@@ -179,14 +203,17 @@ function updatePosition() {
 					if (el0) list.insertBefore(el, el0)
 					else list.appendChild(el)
 					el.style.left = (dx - dx0) + 'px'
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
 					break
 				}
 				el0 = el0.previousElementSibling
+				pos--
 			}
 		}
 	}
 	if (y < 0) {
 		var el0 = list.firstElementChild
+		var pos = 0
 		if (el0 && el0 != el && el0.coords[1] != el.coords[1]) {
 			var h = el.clientHeight
 			while (el0 && el0 != el) {
@@ -194,14 +221,17 @@ function updatePosition() {
 				if (dy <= dy0 + el0.clientHeight / 2) {
 					list.insertBefore(el, el0)
 					el.style.top = (dy - dy0) + 'px'
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
 					break
 				}
 				el0 = el0.nextElementSibling
+				pos++
 			}
 		}
 	}
 	if (y > 0) {
 		var el0 = list.lastElementChild
+		var pos = list.children.length-1
 		if (el0 && el0 != el && el0.coords[1] != el.coords[1]) {
 			var h = el.clientHeight
 			while (el0 && el0 != el) {
@@ -212,9 +242,11 @@ function updatePosition() {
 					else list.appendChild(el)
 					el.style.top = (dy - dy0) + 'px'
 					el.style.transition = 'all 0.15s ease'
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
 					break
 				}
 				el0 = el0.previousElementSibling
+				pos--
 			}
 		}
 	}
@@ -238,7 +270,7 @@ function moveToPosition(el) {
 	}, 200)
 }
 
-function fireEvent(element, type) {
+function fireEvent(element, type, data) {
 	var event
 	if (type == 'click' && element.click) {
 		element.click()
@@ -247,11 +279,13 @@ function fireEvent(element, type) {
 		event = document.createEvent("HTMLEvents")
 		event.initEvent(type, true, true)
 		event.eventName = type
+		event.detail = data
 		element.dispatchEvent(event)
 	} else {
 		event = document.createEventObject()
 		event.eventName = type
 		event.eventType = type
+		event.detail = data
 		element.fireEvent("on" + event.eventType, event)
 	}
 }

@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initDragList(el) {
 	if (!el.classList.contains('reorder')) el.classList.add('reorder')
+	var scroller_x = null, scroller_y = null
+	var scroll_x = false
+	var scroll_y = false
 	el.addEventListener('mousedown', function(event) {
 		if (event.button > 1) return
 		var target = event.target
@@ -37,14 +40,18 @@ function initDragList(el) {
 			el.style.top = '0px'
 		})
 	})
-	el.addEventListener('mousemove', function(event) {
+	if (!window.draginit) window.addEventListener('mousemove', function(event) {
 		if (!window.drag) return
+		window.drag.delta = { left: event.clientX - window.drag.rect.left, right: window.drag.rect.right - event.clientX, top: event.clientY - window.drag.rect.top, bottom: window.drag.rect.bottom - event.clientY }
+		if ((scroll_x || scroll_y) && (!scroller_x || !scroller_y)) {
+			checkPosition()
+		}
 		window.drag.el.style.cursor = 'move'
 		window.drag.el.style.left = (event.clientX - window.drag.coords[0]) + 'px'
 		window.drag.el.style.top = (event.clientY - window.drag.coords[1]) + 'px'
 		updateSiblings()
 	})
-	el.addEventListener('mouseup', function(event) {
+	if (!window.draginit) window.addEventListener('mouseup', function(event) {
 		if (!window.drag) return
 		if (!window.drag.abort) updatePosition()
 		//window.drag.el.style.position = ''
@@ -67,10 +74,57 @@ function initDragList(el) {
 		})
 		delete window.drag
 	})
+	window.draginit = true
+	
+	function checkPosition() {
+		var offset = 25, t = offset * offset
+		if (scroll_x && !scroller_x) {
+			if (window.drag.delta.left < offset && window.drag.delta.right > offset) {
+				t = (window.drag.delta.left + 1) * offset - 10
+				scroller_x = setTimeout(sx, t, -1)
+			} else if (window.drag.delta.right < offset && window.drag.delta.left > offset) {
+				t = (window.drag.delta.right + 1) * offset - 10
+				scroller_x = setTimeout(sx, t, +1)
+			}
+		}
+		if (scroll_y && !scroller_y) {
+			if (window.drag.delta.top < offset && window.drag.delta.bottom > offset) {
+				t = (window.drag.delta.top + 1) * offset - 10
+				scroller_y = setTimeout(sy, t, -1)
+			} else if (window.drag.delta.bottom < offset && window.drag.delta.top > offset) {
+				t = (window.drag.delta.bottom + 1) * offset - 10
+				scroller_y = setTimeout(sy, t, +1)
+			}
+		}
+	}
+	function sx(delta) {
+		if (!window.drag) {
+			scroller_x = null
+			return
+		}
+		var el = window.drag.el.parentNode
+		window.drag.scroll_delta[0] += delta
+		el.parentNode.scrollLeft = el.scrollLeft + delta
+		scroller_x = null
+		checkPosition()
+	}
+	function sy(delta) {
+		if (!window.drag) {
+			scroller_y = null
+			return
+		}
+		var el = window.drag.el.parentNode
+		window.drag.scroll_delta[1] += delta
+		el.scrollTop = el.scrollTop + delta
+		scroller_y = null
+		checkPosition()
+	}
 }
 
 function updateSiblings() {
 	if (!window.drag) return
+	if (window.drag.swapping) return
+	window.drag.swapping = true
 	var el = window.drag.el
 	var list = el.parentNode
 	var dx = el.getBoundingClientRect().left - list.getBoundingClientRect().left
@@ -162,6 +216,7 @@ function updateSiblings() {
 			pos--
 		}
 	}
+	window.drag.swapping = false
 }
 
 function updatePosition() {

@@ -42,7 +42,6 @@ function initDragList(el) {
 	})
 	if (!window.draginit) window.addEventListener('mousemove', function(event) {
 		if (!window.drag) return
-		window.drag.delta = { left: event.clientX - window.drag.rect.left, right: window.drag.rect.right - event.clientX, top: event.clientY - window.drag.rect.top, bottom: window.drag.rect.bottom - event.clientY }
 		if ((scroll_x || scroll_y) && (!scroller_x || !scroller_y)) {
 			checkPosition()
 		}

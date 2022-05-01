@@ -34,27 +34,7 @@ function initDragList(el) {
 		target.style.zIndex = '10'
 		fireEvent(target, 'mousemove')
 		if (list.classList.contains('use-placeholder')) {
-			var p = document.createElement('div')
-			p.style.position = 'absolute'
-			p.style.zIndex = '-1'
-			p.classList.add('placeholder')
-			
-			st = target.currentStyle || getComputedStyle(target, '')
-			
-			p.style.borderLeftWidth = st.borderLeftWidth
-			p.style.borderRightWidth = st.borderRightWidth
-			p.style.borderTopWidth = st.borderTopWidth
-			p.style.borderBottomWidth = st.borderBottomWidth
-			
-			p.style.width = target.clientWidth + 'px'
-			p.style.height = target.clientHeight + 'px'
-			p.style.left = target.offsetLeft + 'px'
-			p.style.top = target.offsetTop + 'px'
-			
-			list.appendChild(p)
-			
-			var st2 = p.currentStyle || getComputedStyle(p, '')
-			p.style.borderColor = st2.backgroundColor || 'transparent'
+			createPlaceholder(target)
 		}
 		var self = target
 		Array.prototype.slice.call(target.parentNode.children).forEach(function(el) {
@@ -70,14 +50,112 @@ function initDragList(el) {
 		})
 	})
 	if (!window.draginit) window.addEventListener('mousemove', function(event) {
-		if (!window.drag) return
+		if (!window.drag || window.drag.original_el) return
 		if ((scroll_x || scroll_y) && (!scroller_x || !scroller_y)) {
-			checkPosition()
+			if (!window.drag.targetElement) checkPosition()
 		}
 		window.drag.el.style.cursor = 'move'
 		window.drag.el.style.left = (event.clientX - window.drag.coords[0]) + 'px'
 		window.drag.el.style.top = (event.clientY - window.drag.coords[1]) + 'px'
-		updateSiblings()
+		if (!window.drag.original_el) updateSiblings(event)
+		
+		var counter = 0
+		var lists = Array.prototype.slice.call(document.querySelectorAll('.reorder'))
+		lists.forEach(function(el) {
+			if (el == window.drag.el.parentNode) return
+			var x = window.drag.el.getBoundingClientRect().left + window.drag.el.clientWidth
+			var y = window.drag.el.getBoundingClientRect().top + window.drag.el.clientHeight
+			
+			if (counter == 0 &&
+			    x > el.getBoundingClientRect().left &&
+			    x - window.drag.el.clientWidth < el.getBoundingClientRect().left + el.clientWidth &&
+				y > el.getBoundingClientRect().top &&
+				y - window.drag.el.clientHeight < el.getBoundingClientRect().top + el.clientHeight) {
+				  if (window.drag.el.parentNode.lastChild.classList.contains('placeholder')) {
+				  	//window.drag.el.parentNode.lastChild.style.opacity = '0.56'
+				  	window.drag.el.parentNode.lastChild.style.display = 'none'
+				  	window.drag.el.parentNode.removeChild(window.drag.el.parentNode.lastChild)
+				  }
+				  //window.drag.coords = [ event.clientX, event.clientY ]
+				  
+				  initDropTarget(el, x - el.getBoundingClientRect().left, y - el.getBoundingClientRect().top - window.drag.el.clientHeight)
+				  
+				  var i = 0
+				  while (i < el.children.length-1) {
+				  	if (el.children[i].style.top != '0px') {
+						el.children[i].style.top = '0px'
+						break
+					}
+				  	i++
+				  }
+				  
+				  var old_rect = window.drag.el.getBoundingClientRect()
+				  
+				  var new_el = window.drag.el.cloneNode(true)
+				  window.drag.original_el = window.drag.el
+				  window.drag.el.style.display = 'none'
+				  window.drag.el.style.left = ''
+				  window.drag.el.style.top = ''
+				  window.drag.el.style.position = ''
+				  window.drag.el = new_el
+				  
+				  if (i < el.children.length) el.insertBefore(window.drag.el, el.children[i])
+				  else el.appendChild(window.drag.el)
+				  
+				  window.drag.index = i
+				  
+				  counter++
+				  
+				  var self = window.drag.el
+				  self.style.left = '0px'
+				  self.style.top = '0px'
+				  
+				  Array.prototype.slice.call(el.children).forEach(function(el) {
+				  	el.coords = [el.getBoundingClientRect().left - el.parentNode.getBoundingClientRect().left, el.getBoundingClientRect().top - el.parentNode.getBoundingClientRect().top]
+				  	el.style.mozUserSelect = 'none'
+				  	el.style.webkitUserSelect = 'none'
+				  	if (el != self) el.style.transition = 'all 0.2s ease'
+				  	if (!el.classList.contains('placeholder') && el != self) {
+				  		el.style.position = 'relative'
+				  		el.style.left = '0px'
+				  		el.style.top = '0px'
+				  	}
+				  })
+				  
+				  createPlaceholder(window.drag.el)
+				  
+				  var delta = [event.clientX - old_rect.left, event.clientY - old_rect.top]
+				  
+				  var p = el.querySelector('.placeholder')
+				  var rect = p.getBoundingClientRect()
+				  var left = window.drag.el.getBoundingClientRect().left - p.getBoundingClientRect().left
+				  var top = window.drag.el.getBoundingClientRect().top - p.getBoundingClientRect().top
+				  
+				  window.drag.el.style.left = old_rect.left - rect.left + 'px'
+				  window.drag.el.style.top = old_rect.top - rect.top + 'px'
+				  
+				  //window.drag.coords = [rect.left + event.clientX - old_rect.left, rect.top + event.clientY - old_rect.top]
+				  
+				  setTimeout(function() {
+					fireEvent(document, 'transfer', { fromList: window.drag.original_el.parentNode, toList: window.drag.el.parentNode })
+				  	delete window.drag.original_el
+				  }, 50)
+			} else {
+				if (el.lastChild.classList.contains('placeholder')) {
+					for (var i = 0; i < el.children.length; i++) {
+						el.children[i].style.left = '0px'
+						el.children[i].style.top = '0px'
+					}
+					el.removeChild(el.lastChild)
+					el.style.position = ''
+					/* if (window.drag.el.parentNode.lastChild.classList.contains('placeholder')) {
+				       window.drag.el.parentNode.lastChild.style.opacity = ''
+				    } */
+				}
+			}
+		})
+		window.drag.lists = lists
+		if (counter == 0) delete window.drag.targetElement
 	})
 	if (!window.draginit) window.addEventListener('mouseup', function(event) {
 		if (!window.drag) return
@@ -89,18 +167,23 @@ function initDragList(el) {
 		window.drag.el.style.zIndex = ''
 		//window.drag.el.style.left = ''
 		//window.drag.el.style.top = ''
-		Array.prototype.slice.call(window.drag.el.parentNode.children).forEach(function(el) {
-			if (el != window.drag.el && !el.classList.contains('placeholder')) {
-				el.style.position = ''
-				el.style.left = ''
-				el.style.top = ''
-				el.style.transition = ''
-			}
-			el.style.mozUserSelect = ''
-			el.style.webkitUserSelect = ''
-			delete el.coords
+		window.drag.lists.forEach(function(list) {
+			Array.prototype.slice.call(list.children).forEach(function(el) {
+				if (el != window.drag.el && !el.classList.contains('placeholder')) {
+					el.style.position = ''
+					el.style.left = ''
+					el.style.top = ''
+					el.style.transition = ''
+				}
+				if (el.style.display == 'none') {
+					el.parentNode.removeChild(el)
+				}
+				el.style.mozUserSelect = ''
+				el.style.webkitUserSelect = ''
+				delete el.coords
+			})
+			list.style.position = ''
 		})
-		el.parentNode.style.position = ''
 		delete window.drag
 	})
 	window.draginit = true
@@ -150,7 +233,7 @@ function initDragList(el) {
 	}
 }
 
-function updateSiblings() {
+function updateSiblings(event) {
 	if (!window.drag) return
 	if (window.drag.swapping) return
 	window.drag.swapping = true
@@ -158,10 +241,10 @@ function updateSiblings() {
 	var list = el.parentNode
 	var dx = el.getBoundingClientRect().left - list.getBoundingClientRect().left + list.scrollLeft
 	var dy = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
-	var x = parseInt(el.style.left)
-	var y = parseInt(el.style.top)
+	var x = event.clientX - window.drag.coords[0]
+	var y = event.clientY - window.drag.coords[1]
 
-	if (x < 0) {
+	if (x < 0 && !list.lock_x) {
 		var el0 = list.firstElementChild
 		var w = el.clientWidth
 		var pos = 0
@@ -190,7 +273,7 @@ function updateSiblings() {
 			pos++
 		}
 	}
-	if (x > 0) {
+	if (x > 0 && !list.lock_x) {
 		var el0 = list.lastElementChild
 		if (el0.classList.contains('placeholder')) {
 			el0 = el0.previousElementSibling
@@ -307,7 +390,7 @@ function updatePosition() {
 		}
 	}, 300)
 
-	if (x < 0) {
+	if (x < 0 && !list.lock_x) {
 		var el0 = list.firstElementChild
 		var pos = 0
 		if (el0 && el0 != el && el0.coords[0] != el.coords[0]) {
@@ -325,7 +408,7 @@ function updatePosition() {
 			}
 		}
 	}
-	if (x > 0) {
+	if (x > 0 && !list.lock_x) {
 		var el0 = list.lastElementChild
 		var pos = list.children.length-1
 		if (el0.classList.contains('placeholder')) {
@@ -410,6 +493,76 @@ function moveToPosition(el) {
 		el.style.left = ''
 		el.style.top = ''
 	}, 200)
+}
+
+function createPlaceholder(target) {
+	var list = target.parentNode
+	var p = document.createElement('div')
+	p.style.position = 'absolute'
+	p.style.zIndex = '-1'
+	p.classList.add('placeholder')
+	
+	st = target.currentStyle || getComputedStyle(target, '')
+	
+	p.style.borderLeftWidth = st.borderLeftWidth
+	p.style.borderRightWidth = st.borderRightWidth
+	p.style.borderTopWidth = st.borderTopWidth
+	p.style.borderBottomWidth = st.borderBottomWidth
+	
+	p.style.width = target.clientWidth + 'px'
+	p.style.height = target.clientHeight + 'px'
+	p.style.left = list.lock_x ? list.children[0].offsetLeft : target.offsetLeft + 'px'
+	p.style.top =  list.lock_y ? list.children[0].offsetTop  : target.offsetTop + 'px'
+	
+	list.appendChild(p)
+	
+	var st2 = p.currentStyle || getComputedStyle(p, '')
+	p.style.borderColor = st2.backgroundColor || 'transparent'
+	
+	return p
+}
+
+function initDropTarget(el, x, y) {
+	if (!el.children.length) return
+	window.drag.targetElement = el
+	if (el.lastChild.classList.contains('placeholder')) return
+	var st = el.currentStyle || getComputedStyle(el, '')
+	if (st.position == '' || st.position == 'static') {
+		el.style.position = 'relative'
+	}
+	y -= el.children[0].clientHeight / 2 + 10
+	st = el.children[0].currentStyle || getComputedStyle(el.children[0], '')
+	var gap = !isNaN(parseInt(st.marginBottom)) ? parseInt(st.marginBottom) : 0
+	
+	var flag = false
+	
+	var x = el.children[0].offsetLeft
+	for (var i = 1; i < el.children.length; i++) {
+		if (el.children[i].offsetLeft != x) {
+			flag = true
+			break
+		}
+	}
+	el.lock_x = !flag
+	
+	flag = false
+	
+	for (var i = el.children.length-2; i >= 0; i--) {
+		el.children[i].style.position = 'relative'
+		if (i == 0 && el.children[i].offsetLeft >= x || i > 0 && el.children[i-1].offsetLeft < x && el.children[i].offsetLeft >= x || el.children[i].offsetLeft > x) {
+			flag = true
+		} else {
+			el.children[i].style.left = '0px'
+		}
+		if (!flag && (i == 0 && el.children[i].offsetTop >= y || i > 0 && el.children[i-1].offsetTop < y && el.children[i].offsetTop >= y)) {
+			el.children[i].style.top = '1px'
+			flag = true
+		} else if (el.children[i].offsetTop > y) {
+			el.children[i].style.top = '1px'
+		} else {
+			el.children[i].style.top = '0px'
+		}
+	}
 }
 
 function fireEvent(element, type, data) {

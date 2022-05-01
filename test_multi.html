@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>List</title>
+<script type="text/javascript" src="xdrag.js"></script>
+<style type="text/css">
+body {
+   font-family: Arial;
+}
+.wrapper {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   width: 460px;
+   height: 160px;
+   margin-left: -230px;
+   margin-top: -80px;
+}
+.list {
+   display: inline-block;
+   vertical-align: top;
+   width: 200px;
+   height: 160px;
+   padding: 3px;
+   box-sizing: border-box;
+   margin: 0px 10px;
+}
+.list > div {
+   border: 2px solid #ccc;
+   margin: 2px;
+   padding: 3px 6px;
+   background: #fff;
+}
+.list .placeholder {
+   box-sizing: border-box;
+   background: #ccc;
+}
+</style>
+<script type="text/javascript">
+   
+   function init() {
+      var lists = Array.prototype.slice.call(document.querySelectorAll('.list'))
+      lists.forEach(function(el) {
+         el.addEventListener('reorder', function(e) {
+            console.log(e)
+         })
+         el.addEventListener('reordercomplete', function(e) {
+            console.log(e)
+         })
+      })
+      document.addEventListener('transfer', function(e) {
+         console.log(e)
+      })
+   }
+
+</script>
+</head>
+<body onload="init()">
+<div class="wrapper">
+   <div class="list reorder use-placeholder" xdrag-group="test"><div>A</div><div>B</div><div>C</div><div>D</div></div>
+   <div class="list reorder use-placeholder" xdrag-group="test"><div>E</div><div>F</div><div>G</div><div>H</div></div>
+</div>
+</body>
+</html>

@@ -15,6 +15,10 @@ function initDragList(el) {
 			target = target.parentNode
 		}
 		var list = target.parentNode
+		var st = list.currentStyle || getComputedStyle(list, '')
+		if (st.position == '' || st.position == 'static') {
+			list.style.position = 'relative'
+		}
 		var index = -1
 		for (var i = 0; i < list.children.length; i++) {
 			if (list.children[i] == event.target) {
@@ -96,6 +100,7 @@ function initDragList(el) {
 			el.style.webkitUserSelect = ''
 			delete el.coords
 		})
+		el.parentNode.style.position = ''
 		delete window.drag
 	})
 	window.draginit = true
@@ -300,7 +305,7 @@ function updatePosition() {
 		if (list.lastChild.classList.contains('placeholder')) {
 			list.removeChild(list.lastChild)
 		}
-	}, 700)
+	}, 300)
 
 	if (x < 0) {
 		var el0 = list.firstElementChild

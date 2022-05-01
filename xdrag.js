@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-	[].slice.call(document.querySelectorAll('.reorder')).forEach(initDragList)
+	Array.prototype.slice.call(document.querySelectorAll('.reorder')).forEach(initDragList)
 });
 
 function initDragList(el) {
@@ -29,15 +29,40 @@ function initDragList(el) {
 		target.style.webkitUserSelect = 'none'
 		target.style.zIndex = '10'
 		fireEvent(target, 'mousemove')
-		var self = target;
-		[].slice.call(target.parentNode.children).forEach(function(el) {
+		if (list.classList.contains('use-placeholder')) {
+			var p = document.createElement('div')
+			p.style.position = 'absolute'
+			p.style.zIndex = '-1'
+			p.classList.add('placeholder')
+			
+			st = target.currentStyle || getComputedStyle(target, '')
+			
+			p.style.borderLeftWidth = st.borderLeftWidth
+			p.style.borderRightWidth = st.borderRightWidth
+			p.style.borderTopWidth = st.borderTopWidth
+			p.style.borderBottomWidth = st.borderBottomWidth
+			
+			p.style.width = target.clientWidth + 'px'
+			p.style.height = target.clientHeight + 'px'
+			p.style.left = target.offsetLeft + 'px'
+			p.style.top = target.offsetTop + 'px'
+			
+			list.appendChild(p)
+			
+			var st2 = p.currentStyle || getComputedStyle(p, '')
+			p.style.borderColor = st2.backgroundColor || 'transparent'
+		}
+		var self = target
+		Array.prototype.slice.call(target.parentNode.children).forEach(function(el) {
 			if (!el.coords) el.coords = [el.getBoundingClientRect().left - el.parentNode.getBoundingClientRect().left, el.getBoundingClientRect().top - el.parentNode.getBoundingClientRect().top]
 			el.style.mozUserSelect = 'none'
 			el.style.webkitUserSelect = 'none'
 			if (el != self) el.style.transition = 'all 0.2s ease'
-			el.style.position = 'relative'
-			el.style.left = '0px'
-			el.style.top = '0px'
+			if (!el.classList.contains('placeholder')) {
+				el.style.position = 'relative'
+				el.style.left = '0px'
+				el.style.top = '0px'
+			}
 		})
 	})
 	if (!window.draginit) window.addEventListener('mousemove', function(event) {
@@ -61,7 +86,7 @@ function initDragList(el) {
 		//window.drag.el.style.left = ''
 		//window.drag.el.style.top = ''
 		Array.prototype.slice.call(window.drag.el.parentNode.children).forEach(function(el) {
-			if (el != window.drag.el) {
+			if (el != window.drag.el && !el.classList.contains('placeholder')) {
 				el.style.position = ''
 				el.style.left = ''
 				el.style.top = ''
@@ -126,8 +151,8 @@ function updateSiblings() {
 	window.drag.swapping = true
 	var el = window.drag.el
 	var list = el.parentNode
-	var dx = el.getBoundingClientRect().left - list.getBoundingClientRect().left
-	var dy = el.getBoundingClientRect().top - list.getBoundingClientRect().top
+	var dx = el.getBoundingClientRect().left - list.getBoundingClientRect().left + list.scrollLeft
+	var dy = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
 	var x = parseInt(el.style.left)
 	var y = parseInt(el.style.top)
 
@@ -137,13 +162,21 @@ function updateSiblings() {
 		var pos = 0
 		while (el0 && el0 != el) {
 			var dx0 = el0.coords[0]
-			if (dx0 >= dx) break
+			if (dx0 >= dx) {
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.left = dx0 + 'px'
+				}
+				break
+			}
 			if (dx0 < dx && dx <= dx0 + el0.clientWidth / 2) {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft) - parseInt(st0.marginLeft)
 				if (el0.style.left == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.left = el0.clientWidth + (!isNaN(gap) ? gap : 0) + 'px'
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.left = dx0 + 'px'
+				}
 				break
 			} else {
 				el0.style.left = '0px'
@@ -154,17 +187,28 @@ function updateSiblings() {
 	}
 	if (x > 0) {
 		var el0 = list.lastElementChild
+		if (el0.classList.contains('placeholder')) {
+			el0 = el0.previousElementSibling
+		}
 		var w = el.clientWidth
 		var pos = list.children.length-1
 		while (el0 && el0 != el) {
 			var dx0 = el0.coords[0]
-			if (dx0 <= dx) break
+			if (dx0 <= dx) {
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.left = dx0 + 'px'
+				}
+				break
+			}
 			if (dx0 > dx && (dx + w) >= dx0 + el0.clientWidth / 2) {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft)
 				if (el0.style.left == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.left = -el0.clientWidth + (!isNaN(gap) ? -gap : 0) + 'px'
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.left = dx0 + 'px'
+				}
 				break
 			} else {
 				el0.style.left = '0px'
@@ -179,16 +223,27 @@ function updateSiblings() {
 		var pos = 0
 		while (el0 && el0 != el) {
 			var dy0 = el0.coords[1]
-			if (dy0 >= dy) break
+			if (dy0 >= dy) {
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.top = dy0 + 'px'
+				}
+				break
+			}
 			if (dy0 < dy && dy <= dy0 + el0.clientHeight / 2) {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
 				if (el0.style.top == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.top = el0.clientHeight + (!isNaN(gap) ? gap : 0) + 'px'
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.top = dy0 + 'px'
+				}
 				break
 			} else {
 				el0.style.top = '0px'
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.top = el.coords[1] + 'px'
+				}
 			}
 			el0 = el0.nextElementSibling
 			pos++
@@ -196,20 +251,34 @@ function updateSiblings() {
 	}
 	if (y > 0) {
 		var el0 = list.lastElementChild
+		if (el0.classList.contains('placeholder')) {
+			el0 = el0.previousElementSibling
+		}
 		var h = el.clientHeight
 		var pos = list.children.length-1
 		while (el0 && el0 != el) {
 			var dy0 = el0.coords[1]
-			if (dy0 <= dy) break
+			if (dy0 <= dy) {
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.top = dy0 + 'px'
+				}
+				break
+			}
 			if (dy0 > dy && (dy + h) >= dy0 + el0.clientHeight / 2) {
 				var st0 = el0.currentStyle || getComputedStyle(el0, '')
 				var st = el.currentStyle || getComputedStyle(el, '')
 				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
 				if (el0.style.top == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.top = -el0.clientHeight + (!isNaN(gap) ? -gap : 0) + 'px'
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.top = dy0 + 'px'
+				}
 				break
 			} else {
 				el0.style.top = '0px'
+				if (list.lastChild.classList.contains('placeholder')) {
+					list.lastChild.style.top = el.coords[1] + 'px'
+				}
 			}
 			el0 = el0.previousElementSibling
 			pos--
@@ -226,6 +295,12 @@ function updatePosition() {
 	var dy = el.getBoundingClientRect().top - list.getBoundingClientRect().top
 	var x = parseInt(el.style.left)
 	var y = parseInt(el.style.top)
+	
+	setTimeout(function() {
+		if (list.lastChild.classList.contains('placeholder')) {
+			list.removeChild(list.lastChild)
+		}
+	}, 700)
 
 	if (x < 0) {
 		var el0 = list.firstElementChild
@@ -248,6 +323,10 @@ function updatePosition() {
 	if (x > 0) {
 		var el0 = list.lastElementChild
 		var pos = list.children.length-1
+		if (el0.classList.contains('placeholder')) {
+			el0 = el0.previousElementSibling
+			pos--
+		}
 		if (el0 && el0 != el && el0.coords[0] != el.coords[0]) {
 			var w = el.clientWidth
 			while (el0 && el0 != el) {
@@ -286,6 +365,10 @@ function updatePosition() {
 	if (y > 0) {
 		var el0 = list.lastElementChild
 		var pos = list.children.length-1
+		if (el0.classList.contains('placeholder')) {
+			el0 = el0.previousElementSibling
+			pos--
+		}
 		if (el0 && el0 != el && el0.coords[1] != el.coords[1]) {
 			var h = el.clientHeight
 			while (el0 && el0 != el) {
@@ -304,7 +387,7 @@ function updatePosition() {
 			}
 		}
 	}
-	if (el.style.left != '0px' || el.style.top != '0px') {
+	if ((el.style.left != '0px' || el.style.top != '0px') && !el.classList.contains('placeholder')) {
 		moveToPosition(el)
 	}
 	if (el.parentNode.ondragend) {

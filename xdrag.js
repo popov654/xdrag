@@ -20,6 +20,7 @@ function initDragList(el) {
 		if (st.position == '' || st.position == 'static') {
 			list.style.position = 'relative'
 		}
+		checkXAlign(list)
 		var index = -1
 		for (var i = 0; i < list.children.length; i++) {
 			if (isChildOf(event.target, list.children[i])) {
@@ -27,7 +28,7 @@ function initDragList(el) {
 				break
 			}
 		}
-		window.drag = { el: target, coords: [event.clientX, event.clientY], index: index }
+		window.drag = { el: target, coords: [event.clientX, event.clientY], index: index, origin: { list: list, index: index } }
 		target.style.position = 'relative'
 		target.style.cursor = 'move'
 		target.style.mozUserSelect = 'none'
@@ -400,8 +401,14 @@ function updatePosition() {
 	var dy = el.getBoundingClientRect().top - list.getBoundingClientRect().top
 	var x = parseInt(el.style.left)
 	var y = parseInt(el.style.top)
+	
+	if (Array.prototype.filter.call(list.children,function(el) {
+		return !el.classList.contains('placeholder')
+	}).length == 1 && window.drag.currentList != window.drag.origin.list) {
+		fireEvent(el.parentNode, 'reordercomplete', { from: 0, to: 0, origin: window.drag.origin })
+	}
 
-	if (x < 0 && !list.lock_x) {
+	else if (x < 0 && !list.lock_x) {
 		var el0 = list.firstElementChild
 		var pos = 0
 		if (el0 && el0 != el && el0.coords[0] != el.coords[0]) {
@@ -411,7 +418,7 @@ function updatePosition() {
 				if (dx <= dx0 + el0.clientWidth / 2) {
 					list.insertBefore(el, el0)
 					el.style.left = (dx - dx0) + 'px'
-					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos, origin: window.drag.origin })
 					break
 				}
 				el0 = el0.nextElementSibling
@@ -419,7 +426,7 @@ function updatePosition() {
 			}
 		}
 	}
-	if (x > 0 && !list.lock_x) {
+	else if (x > 0 && !list.lock_x) {
 		var el0 = list.lastElementChild
 		var pos = list.children.length-1
 		if (el0.classList.contains('placeholder')) {
@@ -435,7 +442,7 @@ function updatePosition() {
 					if (el0) list.insertBefore(el, el0)
 					else list.appendChild(el)
 					el.style.left = (dx - dx0) + 'px'
-					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos, origin: window.drag.origin })
 					break
 				}
 				el0 = el0.previousElementSibling
@@ -443,7 +450,7 @@ function updatePosition() {
 			}
 		}
 	}
-	if (y < 0) {
+	else if (y < 0) {
 		var el0 = list.firstElementChild
 		var pos = 0
 		if (el0 && el0 != el && el0.coords[1] != el.coords[1]) {
@@ -453,7 +460,7 @@ function updatePosition() {
 				if (dy <= dy0 + el0.clientHeight / 2) {
 					list.insertBefore(el, el0)
 					el.style.top = (dy - dy0) + 'px'
-					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos, origin: window.drag.origin })
 					break
 				}
 				el0 = el0.nextElementSibling
@@ -461,7 +468,7 @@ function updatePosition() {
 			}
 		}
 	}
-	if (y > 0) {
+	else if (y > 0) {
 		var el0 = list.lastElementChild
 		var pos = list.children.length-1
 		if (el0.classList.contains('placeholder')) {
@@ -478,7 +485,7 @@ function updatePosition() {
 					else list.appendChild(el)
 					el.style.top = (dy - dy0) + 'px'
 					el.style.transition = 'all 0.15s ease'
-					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos })
+					fireEvent(el.parentNode, 'reordercomplete', { from: window.drag.index, to: pos, origin: window.drag.origin })
 					break
 				}
 				el0 = el0.previousElementSibling
@@ -560,18 +567,9 @@ function initDropTarget(el, x, y) {
 	st = el.children[0].currentStyle || getComputedStyle(el.children[0], '')
 	var gap = !isNaN(parseInt(st.marginBottom)) ? parseInt(st.marginBottom) : 0
 	
+	checkXAlign(el)
+	
 	var flag = false
-	
-	var x = el.children[0].offsetLeft
-	for (var i = 1; i < el.children.length; i++) {
-		if (el.children[i].offsetLeft != x) {
-			flag = true
-			break
-		}
-	}
-	el.lock_x = !flag
-	
-	flag = false
 	
 	for (var i = el.children.length-2; i >= 0; i--) {
 		el.children[i].style.position = 'relative'
@@ -589,6 +587,19 @@ function initDropTarget(el, x, y) {
 			el.children[i].style.top = '0px'
 		}
 	}
+}
+
+function checkXAlign(list) {
+	var flag = false
+	
+	var x = list.children[0].offsetLeft
+	for (var i = 1; i < list.children.length; i++) {
+		if (list.children[i].offsetLeft != x) {
+			flag = true
+			break
+		}
+	}
+	list.lock_x = !flag
 }
 
 function isChildOf(elem, parent) {

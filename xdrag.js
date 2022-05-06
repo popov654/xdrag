@@ -10,7 +10,7 @@ function initDragList(el) {
 	el.addEventListener('mousedown', function(event) {
 		if (event.button > 1) return
 		var target = event.target
-		while (target.parentNode && !target.parentNode.classList.contains('reorder')) {
+		while (target.parentNode && target.parentNode.classList && !target.parentNode.classList.contains('reorder')) {
 			if (['select', 'input', 'textarea', 'label'].indexOf(target.tagName.toLowerCase()) != -1) return false
 			target = target.parentNode
 		}
@@ -61,20 +61,28 @@ function initDragList(el) {
 		
 		var counter = 0
 		var lists = Array.prototype.slice.call(document.querySelectorAll('.reorder'))
+		lists = lists.filter(function(list) {
+			return list.getAttribute('xdrag-group') !== null && list.getAttribute('xdrag-group') == window.drag.el.parentNode.getAttribute('xdrag-group')
+		})
+		var active_lists = []
 		lists.forEach(function(el) {
-			if (el == window.drag.el.parentNode) return
-			var x = window.drag.el.getBoundingClientRect().left + window.drag.el.clientWidth
-			var y = window.drag.el.getBoundingClientRect().top + window.drag.el.clientHeight
+			var x = window.drag.el.getBoundingClientRect().left + window.drag.el.clientWidth * 0.75
+			var y = window.drag.el.getBoundingClientRect().top + window.drag.el.clientHeight * 0.75
 			
-			if (counter == 0 &&
-			    x > el.getBoundingClientRect().left &&
-			    x - window.drag.el.clientWidth < el.getBoundingClientRect().left + el.clientWidth &&
+			if (x > el.getBoundingClientRect().left &&
+			    x - window.drag.el.clientWidth * 0.5 < el.getBoundingClientRect().left + el.clientWidth &&
 				y > el.getBoundingClientRect().top &&
-				y - window.drag.el.clientHeight < el.getBoundingClientRect().top + el.clientHeight) {
-				  if (window.drag.el.parentNode.lastChild.classList.contains('placeholder')) {
-				  	//window.drag.el.parentNode.lastChild.style.opacity = '0.56'
-				  	window.drag.el.parentNode.lastChild.style.display = 'none'
-				  	window.drag.el.parentNode.removeChild(window.drag.el.parentNode.lastChild)
+				y - window.drag.el.clientHeight * 0.5 < el.getBoundingClientRect().top + el.clientHeight) {
+				  active_lists.push(el)
+				  if (el == window.drag.el.parentNode) return
+				  if (window.drag.active_lists && window.drag.active_lists.indexOf(el) != -1) {
+				  	return
+				  }
+				  if (counter > 0) return
+				  if (window.drag.el.parentNode.lastElementChild.classList.contains('placeholder')) {
+				  	//window.drag.el.parentNode.lastElementChild.style.opacity = '0.56'
+				  	window.drag.el.parentNode.lastElementChild.style.display = 'none'
+				  	window.drag.el.parentNode.removeChild(window.drag.el.parentNode.lastElementChild)
 				  }
 				  //window.drag.coords = [ event.clientX, event.clientY ]
 				  
@@ -126,7 +134,7 @@ function initDragList(el) {
 				  
 				  var delta = [event.clientX - old_rect.left, event.clientY - old_rect.top]
 				  
-				  var p = el.querySelector('.placeholder')
+				  var p = el.lastElementChild
 				  var rect = p.getBoundingClientRect()
 				  var left = window.drag.el.getBoundingClientRect().left - p.getBoundingClientRect().left
 				  var top = window.drag.el.getBoundingClientRect().top - p.getBoundingClientRect().top
@@ -134,27 +142,34 @@ function initDragList(el) {
 				  window.drag.el.style.left = old_rect.left - rect.left + 'px'
 				  window.drag.el.style.top = old_rect.top - rect.top + 'px'
 				  
-				  //window.drag.coords = [rect.left + event.clientX - old_rect.left, rect.top + event.clientY - old_rect.top]
+				  window.drag.currentList = el
+				  
+				  window.drag.coords = [rect.left + event.clientX - old_rect.left, rect.top + event.clientY - old_rect.top]
+				  
+				  fireEvent(document, 'transfer', { fromList: window.drag.original_el.parentNode, toList: window.drag.el.parentNode })
 				  
 				  setTimeout(function() {
-					fireEvent(document, 'transfer', { fromList: window.drag.original_el.parentNode, toList: window.drag.el.parentNode })
-				  	delete window.drag.original_el
+				  	if (window.drag) delete window.drag.original_el
 				  }, 50)
 			} else {
-				if (el.lastChild.classList.contains('placeholder')) {
+				if (el.lastElementChild && el.lastElementChild.classList.contains('placeholder')) {
 					for (var i = 0; i < el.children.length; i++) {
 						el.children[i].style.left = '0px'
 						el.children[i].style.top = '0px'
 					}
-					el.removeChild(el.lastChild)
+					el.removeChild(el.lastElementChild)
 					el.style.position = ''
-					/* if (window.drag.el.parentNode.lastChild.classList.contains('placeholder')) {
-				       window.drag.el.parentNode.lastChild.style.opacity = ''
+					/* if (window.drag.el.parentNode.lastElementChild.classList.contains('placeholder')) {
+				       window.drag.el.parentNode.lastElementChild.style.opacity = ''
 				    } */
 				}
 			}
 		})
 		window.drag.lists = lists
+		if (active_lists.length == 0) {
+			active_lists.push(window.drag.currentList)
+		}
+		window.drag.active_lists = active_lists
 		if (counter == 0) delete window.drag.targetElement
 	})
 	if (!window.draginit) window.addEventListener('mouseup', function(event) {
@@ -167,7 +182,8 @@ function initDragList(el) {
 		window.drag.el.style.zIndex = ''
 		//window.drag.el.style.left = ''
 		//window.drag.el.style.top = ''
-		window.drag.lists.forEach(function(list) {
+		var lists = window.drag.lists.length ? window.drag.lists : [window.drag.el.parentNode]
+		lists.forEach(function(list) {
 			Array.prototype.slice.call(list.children).forEach(function(el) {
 				if (el != window.drag.el && !el.classList.contains('placeholder')) {
 					el.style.position = ''
@@ -251,8 +267,8 @@ function updateSiblings(event) {
 		while (el0 && el0 != el) {
 			var dx0 = el0.coords[0]
 			if (dx0 >= dx) {
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.left = dx0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.left = dx0 + 'px'
 				}
 				break
 			}
@@ -262,8 +278,8 @@ function updateSiblings(event) {
 				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft) - parseInt(st0.marginLeft)
 				if (el0.style.left == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.left = el0.clientWidth + (!isNaN(gap) ? gap : 0) + 'px'
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.left = dx0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.left = dx0 + 'px'
 				}
 				break
 			} else {
@@ -283,8 +299,8 @@ function updateSiblings(event) {
 		while (el0 && el0 != el) {
 			var dx0 = el0.coords[0]
 			if (dx0 <= dx) {
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.left = dx0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.left = dx0 + 'px'
 				}
 				break
 			}
@@ -294,8 +310,8 @@ function updateSiblings(event) {
 				var gap = parseInt(st0.marginRight) + parseInt(st.marginLeft)
 				if (el0.style.left == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.left = -el0.clientWidth + (!isNaN(gap) ? -gap : 0) + 'px'
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.left = dx0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.left = dx0 + 'px'
 				}
 				break
 			} else {
@@ -312,8 +328,8 @@ function updateSiblings(event) {
 		while (el0 && el0 != el) {
 			var dy0 = el0.coords[1]
 			if (dy0 >= dy) {
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.top = dy0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.top = dy0 + 'px'
 				}
 				break
 			}
@@ -323,14 +339,14 @@ function updateSiblings(event) {
 				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
 				if (el0.style.top == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.top = el0.clientHeight + (!isNaN(gap) ? gap : 0) + 'px'
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.top = dy0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.top = dy0 + 'px'
 				}
 				break
 			} else {
 				el0.style.top = '0px'
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.top = el.coords[1] + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.top = el.coords[1] + 'px'
 				}
 			}
 			el0 = el0.nextElementSibling
@@ -347,8 +363,8 @@ function updateSiblings(event) {
 		while (el0 && el0 != el) {
 			var dy0 = el0.coords[1]
 			if (dy0 <= dy) {
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.top = dy0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.top = dy0 + 'px'
 				}
 				break
 			}
@@ -358,14 +374,14 @@ function updateSiblings(event) {
 				var gap = parseInt(st0.marginBottom) + parseInt(st.marginTop)
 				if (el0.style.top == '0px') fireEvent(el0.parentNode, 'reorder', { from: window.drag.index, to: pos })
 				el0.style.top = -el0.clientHeight + (!isNaN(gap) ? -gap : 0) + 'px'
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.top = dy0 + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.top = dy0 + 'px'
 				}
 				break
 			} else {
 				el0.style.top = '0px'
-				if (list.lastChild.classList.contains('placeholder')) {
-					list.lastChild.style.top = el.coords[1] + 'px'
+				if (list.lastElementChild.classList.contains('placeholder')) {
+					list.lastElementChild.style.top = el.coords[1] + 'px'
 				}
 			}
 			el0 = el0.previousElementSibling
@@ -383,12 +399,6 @@ function updatePosition() {
 	var dy = el.getBoundingClientRect().top - list.getBoundingClientRect().top
 	var x = parseInt(el.style.left)
 	var y = parseInt(el.style.top)
-	
-	setTimeout(function() {
-		if (list.lastChild.classList.contains('placeholder')) {
-			list.removeChild(list.lastChild)
-		}
-	}, 300)
 
 	if (x < 0 && !list.lock_x) {
 		var el0 = list.firstElementChild
@@ -478,6 +488,13 @@ function updatePosition() {
 	if ((el.style.left != '0px' || el.style.top != '0px') && !el.classList.contains('placeholder')) {
 		moveToPosition(el)
 	}
+	
+	setTimeout(function() {
+		if (list.lastElementChild && list.lastElementChild.classList.contains('placeholder')) {
+			list.removeChild(list.lastElementChild)
+		}
+	}, 300)
+	
 	if (el.parentNode.ondragend) {
 		el.parentNode.ondragend.call(el.parentNode)
 	}
@@ -525,7 +542,15 @@ function createPlaceholder(target) {
 function initDropTarget(el, x, y) {
 	if (!el.children.length) return
 	window.drag.targetElement = el
-	if (el.lastChild.classList.contains('placeholder')) return
+	if (el.lastElementChild.classList.contains('placeholder')) return
+	
+	for (var i = 0; i < el.children.length; i++) {
+		if (el.children[i].style.display == 'none') {
+			el.removeChild(el.children[i])
+			i--
+		}
+	}
+	
 	var st = el.currentStyle || getComputedStyle(el, '')
 	if (st.position == '' || st.position == 'static') {
 		el.style.position = 'relative'
@@ -563,6 +588,12 @@ function initDropTarget(el, x, y) {
 			el.children[i].style.top = '0px'
 		}
 	}
+}
+
+function getDescendant(elem, selector) {
+	return Array.prototype.slice.call(elem.querySelectorAll(selector)).filter(function(el) {
+		return el.parentNode === elem
+	})[0]
 }
 
 function fireEvent(element, type, data) {

@@ -13,15 +13,16 @@ function initDragList(el) {
 		while (target.parentNode && target.parentNode.classList && !target.parentNode.classList.contains('reorder')) {
 			if (['select', 'input', 'textarea', 'label'].indexOf(target.tagName.toLowerCase()) != -1) return false
 			target = target.parentNode
-		}
+		} 
 		var list = target.parentNode
+		if (!list.classList || !list.classList.contains('reorder')) return false
 		var st = list.currentStyle || getComputedStyle(list, '')
 		if (st.position == '' || st.position == 'static') {
 			list.style.position = 'relative'
 		}
 		var index = -1
 		for (var i = 0; i < list.children.length; i++) {
-			if (list.children[i] == event.target) {
+			if (isChildOf(event.target, list.children[i])) {
 				index = i
 				break
 			}
@@ -590,10 +591,12 @@ function initDropTarget(el, x, y) {
 	}
 }
 
-function getDescendant(elem, selector) {
-	return Array.prototype.slice.call(elem.querySelectorAll(selector)).filter(function(el) {
-		return el.parentNode === elem
-	})[0]
+function isChildOf(elem, parent) {
+	while (elem) {
+		if (elem === parent) return true
+		elem = elem.parentNode
+	}
+	return false
 }
 
 function fireEvent(element, type, data) {

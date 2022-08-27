@@ -61,6 +61,16 @@ function initDragList(el) {
 		window.drag.el.style.top = (event.clientY - window.drag.coords[1]) + 'px'
 		if (!window.drag.original_el) updateSiblings(event)
 		
+		if (window.drag.el.parentNode.scrollTop > 0 && 
+		    event.clientY < window.drag.el.parentNode.getBoundingClientRect().top + 15) {
+			window.drag.el.parentNode.scrollTop -= Math.max(0, 15 + window.drag.el.parentNode.getBoundingClientRect().bottom - event.clientY)
+		}
+		
+		if (window.drag.el.parentNode.scrollTop < window.drag.el.parentNode.scrollHeight - window.drag.el.clientHeight - 1 && 
+		    event.clientY > window.drag.el.parentNode.getBoundingClientRect().bottom - 15) {
+			window.drag.el.parentNode.scrollTop += Math.max(0, 15 - window.drag.el.parentNode.getBoundingClientRect().bottom + event.clientY)
+		}
+		
 		var counter = 0
 		var lists = Array.prototype.slice.call(document.querySelectorAll('.reorder'))
 		lists = lists.filter(function(list) {
@@ -73,86 +83,86 @@ function initDragList(el) {
 			
 			if (x > el.getBoundingClientRect().left &&
 			    x - window.drag.el.clientWidth * 0.5 < el.getBoundingClientRect().left + el.clientWidth &&
-				y > el.getBoundingClientRect().top &&
-				y - window.drag.el.clientHeight * 0.5 < el.getBoundingClientRect().top + el.clientHeight) {
-				  active_lists.push(el)
-				  if (el == window.drag.el.parentNode) return
-				  if (window.drag.active_lists && window.drag.active_lists.indexOf(el) != -1) {
-				  	return
-				  }
-				  if (counter > 0) return
-				  if (window.drag.el.parentNode.lastElementChild.classList.contains('placeholder')) {
-				  	//window.drag.el.parentNode.lastElementChild.style.opacity = '0.56'
-				  	window.drag.el.parentNode.lastElementChild.style.display = 'none'
-				  	window.drag.el.parentNode.removeChild(window.drag.el.parentNode.lastElementChild)
-				  }
-				  //window.drag.coords = [ event.clientX, event.clientY ]
-				  
-				  initDropTarget(el, x - el.getBoundingClientRect().left, y - el.getBoundingClientRect().top - window.drag.el.clientHeight)
-				  
-				  var i = 0
-				  while (i < el.children.length-1) {
-				  	if (el.children[i].style.top != '0px') {
-						el.children[i].style.top = '0px'
-						break
+			    y > el.getBoundingClientRect().top &&
+			    y - window.drag.el.clientHeight * 0.5 < el.getBoundingClientRect().top + el.clientHeight) {
+					active_lists.push(el)
+					if (el == window.drag.el.parentNode) return
+					if (window.drag.active_lists && window.drag.active_lists.indexOf(el) != -1) {
+						return
 					}
-				  	i++
-				  }
-				  
-				  var old_rect = window.drag.el.getBoundingClientRect()
-				  
-				  var new_el = window.drag.el.cloneNode(true)
-				  window.drag.original_el = window.drag.el
-				  window.drag.el.style.display = 'none'
-				  window.drag.el.style.left = ''
-				  window.drag.el.style.top = ''
-				  window.drag.el.style.position = ''
-				  window.drag.el = new_el
-				  
-				  if (i < el.children.length) el.insertBefore(window.drag.el, el.children[i])
-				  else el.appendChild(window.drag.el)
-				  
-				  window.drag.index = i
-				  
-				  counter++
-				  
-				  var self = window.drag.el
-				  self.style.left = '0px'
-				  self.style.top = '0px'
-				  
-				  Array.prototype.slice.call(el.children).forEach(function(el) {
-				  	el.coords = [el.getBoundingClientRect().left - el.parentNode.getBoundingClientRect().left, el.getBoundingClientRect().top - el.parentNode.getBoundingClientRect().top]
-				  	el.style.mozUserSelect = 'none'
-				  	el.style.webkitUserSelect = 'none'
-				  	if (el != self) el.style.transition = 'all 0.2s ease'
-				  	if (!el.classList.contains('placeholder') && el != self) {
-				  		el.style.position = 'relative'
-				  		el.style.left = '0px'
-				  		el.style.top = '0px'
-				  	}
-				  })
-				  
-				  createPlaceholder(window.drag.el)
-				  
-				  var delta = [event.clientX - old_rect.left, event.clientY - old_rect.top]
-				  
-				  var p = el.lastElementChild
-				  var rect = p.getBoundingClientRect()
-				  var left = window.drag.el.getBoundingClientRect().left - p.getBoundingClientRect().left
-				  var top = window.drag.el.getBoundingClientRect().top - p.getBoundingClientRect().top
-				  
-				  window.drag.el.style.left = old_rect.left - rect.left + 'px'
-				  window.drag.el.style.top = old_rect.top - rect.top + 'px'
-				  
-				  window.drag.currentList = el
-				  
-				  window.drag.coords = [rect.left + event.clientX - old_rect.left, rect.top + event.clientY - old_rect.top]
-				  
-				  fireEvent(document, 'transfer', { fromList: window.drag.original_el.parentNode, toList: window.drag.el.parentNode })
-				  
-				  setTimeout(function() {
-				  	if (window.drag) delete window.drag.original_el
-				  }, 50)
+					if (counter > 0) return
+					if (window.drag.el.parentNode.lastElementChild.classList.contains('placeholder')) {
+					//window.drag.el.parentNode.lastElementChild.style.opacity = '0.56'
+						window.drag.el.parentNode.lastElementChild.style.display = 'none'
+						window.drag.el.parentNode.removeChild(window.drag.el.parentNode.lastElementChild)
+					}
+					//window.drag.coords = [ event.clientX, event.clientY ]
+					
+					initDropTarget(el, x - el.getBoundingClientRect().left, y - el.getBoundingClientRect().top - window.drag.el.clientHeight)
+					
+					var i = 0
+					while (i < el.children.length-1) {
+						if (el.children[i].style.top != '0px') {
+							el.children[i].style.top = '0px'
+							break
+						}
+						i++
+					}
+					
+					var old_rect = window.drag.el.getBoundingClientRect()
+					
+					var new_el = window.drag.el.cloneNode(true)
+					window.drag.original_el = window.drag.el
+					window.drag.el.style.display = 'none'
+					window.drag.el.style.left = ''
+					window.drag.el.style.top = ''
+					window.drag.el.style.position = ''
+					window.drag.el = new_el
+					
+					if (i < el.children.length) el.insertBefore(window.drag.el, el.children[i])
+					else el.appendChild(window.drag.el)
+					
+					window.drag.index = i
+					
+					counter++
+					
+					var self = window.drag.el
+					self.style.left = '0px'
+					self.style.top = '0px'
+					
+					Array.prototype.slice.call(el.children).forEach(function(el) {
+						el.coords = [el.getBoundingClientRect().left - el.parentNode.getBoundingClientRect().left, el.getBoundingClientRect().top - el.parentNode.getBoundingClientRect().top]
+						el.style.mozUserSelect = 'none'
+						el.style.webkitUserSelect = 'none'
+						if (el != self) el.style.transition = 'all 0.2s ease'
+						if (!el.classList.contains('placeholder') && el != self) {
+							el.style.position = 'relative'
+							el.style.left = '0px'
+							el.style.top = '0px'
+						}
+					})
+					
+					createPlaceholder(window.drag.el)
+					
+					var delta = [event.clientX - old_rect.left, event.clientY - old_rect.top]
+					
+					var p = el.lastElementChild
+					var rect = p.getBoundingClientRect()
+					var left = window.drag.el.getBoundingClientRect().left - p.getBoundingClientRect().left
+					var top = window.drag.el.getBoundingClientRect().top - p.getBoundingClientRect().top
+					
+					window.drag.el.style.left = old_rect.left - rect.left + 'px'
+					window.drag.el.style.top = old_rect.top - rect.top + 'px'
+					
+					window.drag.currentList = el
+					
+					window.drag.coords = [rect.left + event.clientX - old_rect.left, rect.top + event.clientY - old_rect.top]
+					
+					fireEvent(document, 'transfer', { fromList: window.drag.original_el.parentNode, toList: window.drag.el.parentNode })
+					
+					setTimeout(function() {
+						if (window.drag) delete window.drag.original_el
+					}, 50)
 			} else {
 				if (el.lastElementChild && el.lastElementChild.classList.contains('placeholder')) {
 					for (var i = 0; i < el.children.length; i++) {
@@ -162,8 +172,8 @@ function initDragList(el) {
 					el.removeChild(el.lastElementChild)
 					el.style.position = ''
 					/* if (window.drag.el.parentNode.lastElementChild.classList.contains('placeholder')) {
-				       window.drag.el.parentNode.lastElementChild.style.opacity = ''
-				    } */
+					    window.drag.el.parentNode.lastElementChild.style.opacity = ''
+					} */
 				}
 			}
 		})
